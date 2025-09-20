@@ -1,4 +1,4 @@
-# Learn Bot 🤖📚 (with Defang IO Integration)
+# Learn Bot (with Defang IO Integration)
 
 Learn Bot is an intelligent chatbot designed to help users learn topics interactively. It leverages **Defang IO** for AI-powered responses, allowing the bot to provide explanations, examples, and guidance efficiently.
 
