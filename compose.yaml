@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  service1:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - target: 5000
+        published: 5000
+        mode: ingress
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}  
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
