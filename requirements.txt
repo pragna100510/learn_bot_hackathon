@@ -4,3 +4,4 @@ openai
 chromadb
 pypdf
 serpapi
+python-multipart

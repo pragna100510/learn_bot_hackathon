@@ -4,6 +4,7 @@ from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 import openai
 import chromadb
+from pypdf import PdfReader
 from typing import List
 
 # --- Config ---
@@ -82,7 +83,8 @@ async def chat(query: Query):
 
     context = "\n\n".join(docs) if docs else ""
 
-    # 2) Fallback: web search if no context
+    """ 
+   # 2) Fallback: web search if no context
     if not context and SERPAPI_KEY:
         try:
             from serpapi import GoogleSearch
@@ -95,7 +97,8 @@ async def chat(query: Query):
                 snippets.append(text_snip)
             context = "\n\n".join(snippets)
         except Exception:
-            context = ""
+            context = ""  
+    """
 
     # 3) Call LLM with context
     system_prompt = (
