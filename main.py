@@ -4,20 +4,18 @@ from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 import openai
 import chromadb
-from chromadb.config import Settings
-from pypdf import PdfReader
 from typing import List
 
 # --- Config ---
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-SERPAPI_KEY = os.getenv("SERPAPI_API_KEY")  # optional, needed for search fallback
+#SERPAPI_KEY = os.getenv("SERPAPI_API_KEY")  # optional, needed for search fallback
 if not OPENAI_KEY:
     raise Exception("Set OPENAI_API_KEY in env")
 
 openai.api_key = OPENAI_KEY
 
-# Chroma persistent client (stores DB in ./chroma_db)
-client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma_db"))
+# Updated Chroma client initialization
+client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection(name="notes")
 
 app = FastAPI(title="TutorBot (Level1+Level2)")
@@ -116,3 +114,4 @@ async def chat(query: Query):
 @app.get("/")
 def health():
     return {"status": "ok"}
+

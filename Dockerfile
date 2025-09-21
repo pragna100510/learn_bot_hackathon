@@ -25,5 +25,5 @@ COPY . /app
 EXPOSE 5000
 
 # Run main when the container launches
-ENTRYPOINT ["uwsgi", "--http", "0.0.0.0:5000", "--master", "-p", "2", "-w", "main:app"]
+ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
 USER nobody
