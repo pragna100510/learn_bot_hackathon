@@ -1,49 +1,105 @@
-<!doctype html>
-<html>
-  <body>
-    <h2>Tutor Bot (Level1 + Level2)</h2>
-
-    <div id="chat" style="border:1px solid #ccc;padding:10px;max-width:700px;height:300px;overflow:auto"></div>
-
-    <input id="q" placeholder="Ask a question..." style="width:60%" />
-    <button onclick="send()">Send</button>
-
-    <hr>
-    <h4>Upload notes (PDF / .txt) → click Upload then wait for success</h4>
-    <input id="files" type="file" multiple />
-    <button onclick="upload()">Upload</button>
-    <div id="uploadStatus"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TutorBot Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #chat-container {
+            width: 400px;
+            max-width: 100%;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .user { color: blue; }
+        .bot { color: green; }
+        #input-container {
+            display: flex;
+        }
+        #question {
+            flex: 1;
+            padding: 8px;
+            font-size: 16px;
+        }
+        #send-btn {
+            padding: 8px 12px;
+            font-size: 16px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>TutorBot Chat</h1>
+    <div id="chat-container">
+        <div id="messages"></div>
+        <div id="input-container">
+            <input type="text" id="question" placeholder="Ask something..." />
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
 
     <script>
-      async function send() {
-        const q = document.getElementById("q").value;
-        if (!q) return;
-        addMessage("You", q);
-        const res = await fetch('/chat', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({question: q})
-        });
-        const data = await res.json();
-        addMessage("Bot", data.answer);
-      }
-      function addMessage(who, text) {
-        const d = document.getElementById("chat");
-        d.innerHTML += `<p><b>${who}:</b> ${text}</p>`;
-        d.scrollTop = d.scrollHeight;
-      }
+        const API_BASE = "https://tiq56axbdgsqd-service1--5000.prod1b.defang.dev"; // Replace with your backend URL
+        const messagesDiv = document.getElementById("messages");
+        const questionInput = document.getElementById("question");
+        const sendBtn = document.getElementById("send-btn");
 
-      async function upload() {
-        const input = document.getElementById('files');
-        const files = input.files;
-        if (!files.length) return alert('Choose files');
-        const fd = new FormData();
-        for (let f of files) fd.append('files', f);
-        document.getElementById('uploadStatus').innerText = 'Uploading...';
-        const res = await fetch('/ingest', { method: 'POST', body: fd });
-        const data = await res.json();
-        document.getElementById('uploadStatus').innerText = JSON.stringify(data);
-      }
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "message " + sender;
+            msgDiv.innerText = text;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+            addMessage("You: " + question, "user");
+            questionInput.value = "";
+
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question })
+                });
+                const data = await response.json();
+                addMessage("TutorBot: " + data.answer, "bot");
+            } catch (err) {
+                addMessage("Error: Unable to reach server", "bot");
+                console.error(err);
+            }
+        }
+
+        sendBtn.addEventListener("click", sendQuestion);
+        questionInput.addEventListener("keypress", e => {
+            if (e.key === "Enter") sendQuestion();
+        });
     </script>
-  </body>
+</body>
 </html>

@@ -114,7 +114,7 @@ async def chat(query: Query):
     return {"answer": answer, "used_context": bool(context)}
 
 # Health
-@app.get("/")
+@app.get("/health")
 def health():
     return {"status": "ok"}
 
