@@ -1,6 +1,7 @@
 # /app/main.py
 import os, io
 from fastapi import FastAPI, UploadFile, File
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import openai
 import chromadb
@@ -20,6 +21,9 @@ client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection(name="notes")
 
 app = FastAPI(title="TutorBot (Level1+Level2)")
+
+app.mount("/", StaticFiles(directory=os.path.dirname(__file__), html=True), name="static")
+
 
 # --- helpers ---
 def extract_text_from_pdf_bytes(b: bytes) -> str:
