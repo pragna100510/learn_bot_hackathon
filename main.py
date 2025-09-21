@@ -22,6 +22,13 @@ collection = client.get_or_create_collection(name="notes")
 
 app = FastAPI(title="TutorBot (Level1+Level2)")
 
+# Health
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+
 app.mount("/", StaticFiles(directory=os.path.dirname(__file__), html=True), name="static")
 
 
@@ -116,9 +123,4 @@ async def chat(query: Query):
     resp = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages, max_tokens=600)
     answer = resp["choices"][0]["message"]["content"]
     return {"answer": answer, "used_context": bool(context)}
-
-# Health
-@app.get("/health")
-def health():
-    return {"status": "ok"}
 
