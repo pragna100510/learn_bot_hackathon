@@ -3,22 +3,21 @@ import os, io
 from fastapi import FastAPI, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import openai
+from openai import OpenAI
 import chromadb
 from pypdf import PdfReader
 from typing import List
 
 # --- Config ---
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-#SERPAPI_KEY = os.getenv("SERPAPI_API_KEY")  # optional, needed for search fallback
 if not OPENAI_KEY:
     raise Exception("Set OPENAI_API_KEY in env")
 
-openai.api_key = OPENAI_KEY
+client = OpenAI(api_key=OPENAI_KEY)
 
 # Updated Chroma client initialization
-client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.get_or_create_collection(name="notes")
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma_client.get_or_create_collection(name="notes")
 
 app = FastAPI(title="TutorBot (Level1+Level2)")
 
@@ -26,7 +25,6 @@ app = FastAPI(title="TutorBot (Level1+Level2)")
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
 
 
 app.mount("/", StaticFiles(directory=os.path.dirname(__file__), html=True), name="static")
@@ -39,6 +37,7 @@ def extract_text_from_pdf_bytes(b: bytes) -> str:
         return "\n".join([page.extract_text() or "" for page in reader.pages])
     except Exception:
         return ""
+
 
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200):
     if not text:
@@ -54,6 +53,7 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200):
             start = 0
     return chunks
 
+
 # --- ingest endpoint (upload notes) ---
 @app.post("/ingest")
 async def ingest(files: List[UploadFile] = File(...)):
@@ -68,19 +68,27 @@ async def ingest(files: List[UploadFile] = File(...)):
                 text = data.decode("utf-8")
             except:
                 text = ""
+
         chunks = chunk_text(text)
         for i, chunk in enumerate(chunks):
-            emb = openai.Embedding.create(model="text-embedding-3-small", input=chunk)
-            vector = emb["data"][0]["embedding"]
+            emb = client.embeddings.create(model="text-embedding-3-small", input=chunk)
+            vector = emb.data[0].embedding
             doc_id = f"{f.filename}-{i}"
-            collection.add(documents=[chunk], embeddings=[vector], metadatas=[{"source": f.filename}], ids=[doc_id])
+            collection.add(
+                documents=[chunk],
+                embeddings=[vector],
+                metadatas=[{"source": f.filename}],
+                ids=[doc_id],
+            )
         added.append({"file": f.filename, "chunks": len(chunks)})
-    client.persist()
+    chroma_client.persist()
     return {"status": "ok", "added": added}
+
 
 # --- query/chat endpoint ---
 class Query(BaseModel):
     question: str
+
 
 @app.post("/chat")
 async def chat(query: Query):
@@ -94,33 +102,20 @@ async def chat(query: Query):
 
     context = "\n\n".join(docs) if docs else ""
 
-    """ 
-   # 2) Fallback: web search if no context
-    if not context and SERPAPI_KEY:
-        try:
-            from serpapi import GoogleSearch
-            params = {"q": question, "engine": "google", "api_key": SERPAPI_KEY, "num": 3}
-            search = GoogleSearch(params)
-            result = search.get_dict()
-            snippets = []
-            for r in result.get("organic_results", [])[:3]:
-                text_snip = r.get("snippet") or r.get("title") or ""
-                snippets.append(text_snip)
-            context = "\n\n".join(snippets)
-        except Exception:
-            context = ""  
-    """
-
-    # 3) Call LLM with context
+    # 2) Call LLM with context
     system_prompt = (
         "You are a helpful tutor. Use the provided context (if any) to answer the user's question. "
         "If the context doesn't answer it, use your knowledge. Provide explanation and a short practice problem when helpful."
     )
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Context:\n{context}\n\nQuestion:\n{question}"}
+        {"role": "user", "content": f"Context:\n{context}\n\nQuestion:\n{question}"},
     ]
-    resp = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages, max_tokens=600)
-    answer = resp["choices"][0]["message"]["content"]
-    return {"answer": answer, "used_context": bool(context)}
 
+    resp = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        max_tokens=600,
+    )
+    answer = resp.choices[0].message.content
+    return {"answer": answer, "used_context": bool(context)}
