@@ -1,105 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>TutorBot Chat</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f9;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-        }
-        #chat-container {
-            width: 400px;
-            max-width: 100%;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-        #messages {
-            height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .message {
-            margin-bottom: 10px;
-        }
-        .user { color: blue; }
-        .bot { color: green; }
-        #input-container {
-            display: flex;
-        }
-        #question {
-            flex: 1;
-            padding: 8px;
-            font-size: 16px;
-        }
-        #send-btn {
-            padding: 8px 12px;
-            font-size: 16px;
-            margin-left: 5px;
-            cursor: pointer;
-        }
-    </style>
+  <title>TutorBot Demo</title>
 </head>
 <body>
-    <h1>TutorBot Chat</h1>
-    <div id="chat-container">
-        <div id="messages"></div>
-        <div id="input-container">
-            <input type="text" id="question" placeholder="Ask something..." />
-            <button id="send-btn">Send</button>
-        </div>
-    </div>
+  <h1>Personalized LMS - TutorBot</h1>
+  <input id="question" placeholder="Ask me something..." />
+  <button onclick="ask()">Send</button>
+  <p><b>You:</b> <span id="user"></span></p>
+  <p><b>TutorBot:</b> <span id="bot"></span></p>
 
-    <script>
-        const API_BASE = "https://tiq56axbdgsqd-service1--5000.prod1b.defang.dev"; 
-        const messagesDiv = document.getElementById("messages");
-        const questionInput = document.getElementById("question");
-        const sendBtn = document.getElementById("send-btn");
+  <script>
+    async function ask() {
+      const question = document.getElementById("question").value;
+      document.getElementById("user").innerText = question;
 
-        function addMessage(text, sender) {
-            const msgDiv = document.createElement("div");
-            msgDiv.className = "message " + sender;
-            msgDiv.innerText = text;
-            messagesDiv.appendChild(msgDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+      const response = await fetch("http://127.0.0.1:5000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question })
+      });
 
-        async function sendQuestion() {
-            const question = questionInput.value.trim();
-            if (!question) return;
-            addMessage("You: " + question, "user");
-            questionInput.value = "";
-
-            try {
-                const response = await fetch(`${API_BASE}/chat`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ question })
-                });
-                const data = await response.json();
-                addMessage("TutorBot: " + data.answer, "bot");
-            } catch (err) {
-                addMessage("Error: Unable to reach server", "bot");
-                console.error(err);
-            }
-        }
-
-        sendBtn.addEventListener("click", sendQuestion);
-        questionInput.addEventListener("keypress", e => {
-            if (e.key === "Enter") sendQuestion();
-        });
-    </script>
+      const data = await response.json();
+      document.getElementById("bot").innerText = data.answer; // ✅ not undefined
+    }
+  </script>
 </body>
 </html>
